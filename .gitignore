@@ -1,1 +1,21 @@
 /build/
+/lib/
+# Compiled Object files
+*.o
+*.obj
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.a
+*.lib
+
+# Executable files
+*.exe
+*.out
+*.app
+/cmake-build-debug-visual-studio/
+.idea/
