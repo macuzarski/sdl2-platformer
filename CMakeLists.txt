@@ -14,6 +14,14 @@ link_directories(${SDL2_DIR}/lib/x64 ${SDL2_IMAGE_DIR}/lib/x64 ${SDL2_TTF_DIR}/l
 
 add_executable(${PROJECT_NAME} main.cpp
         defs.h
+        Character.h
+        LTexture.h
+        LTexture.cpp
+        Character.cpp
+        LTimer.h
+        LTimer.cpp
+        LButton.h
+        LButton.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}

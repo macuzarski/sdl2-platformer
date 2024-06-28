@@ -2,6 +2,8 @@
 // Created by macuz on 28.06.2024.
 //
 #include <SDL.h>
+
+#include "LTexture.h"
 #ifndef CHARACTER_H
 #define CHARACTER_H
 
@@ -17,7 +19,7 @@ public:
     static const int CHARACTER_VEL = 10;
 
     //Initializes the variables
-    Character();
+    Character(SDL_Renderer* render, LTexture* texture);
 
     //Takes key presses and adjusts the dot's velocity
     void handleEvent( SDL_Event& e );
@@ -34,6 +36,9 @@ private:
 
     //The velocity of the dot
     int mVelX, mVelY;
+
+    SDL_Renderer* renderer;
+    LTexture* gCharacterTexture;
 };
 
 #endif //CHARACTER_H

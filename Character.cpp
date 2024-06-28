@@ -3,11 +3,10 @@
 //
 #include "Character.h"
 #include "defs.h"
-//#include "LTexture.h"
+#include "LTexture.h"
 //extern LTexture gDotTexture;
 
-
-Character::Character()
+Character::Character(SDL_Renderer* render, LTexture* texture)
 {
     //Initialize the offsets
     mPosX = 0;
@@ -16,6 +15,9 @@ Character::Character()
     //Initialize the velocity
     mVelX = 0;
     mVelY = 0;
+
+    renderer = render;
+    gCharacterTexture = texture;
 }
 
 void Character::handleEvent( SDL_Event& e )
@@ -68,5 +70,8 @@ void Character::move()
 void Character::render()
 {
     //Show the dot
-    //gCharacterTexture.render( mPosX, mPosY );
+    gCharacterTexture->renderB( renderer, mPosX, mPosY );
+    // std::cout << gCharacterTexture.getTexturePath();
+    printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
+
 }

@@ -11,51 +11,10 @@
 #include <cmath>
 #include <sstream>
 #include <string>
+#include "Character.h"
+#include "LTimer.h"
+#include "LButton.h"
 
-
-
-class LTexture
-{
-public:
-    //Initializes variables
-    explicit LTexture();
-
-    //Deallocates memory
-    ~LTexture();
-
-    //Loads image at specified path
-    bool loadFromFile( std::string path );
-    //Creates image from font string
-    bool loadFromRenderedText( std::string textureText, SDL_Color textColor );
-
-    //Deallocates texture
-    void free();
-
-    //Set color modulation
-    void setColor( Uint8 red, Uint8 green, Uint8 blue );
-
-    //Set blending
-    void setBlendMode( SDL_BlendMode blending );
-
-    //Set alpha modulation
-    void setAlpha( Uint8 alpha );
-
-    //Renders texture at given point
-    void renderB( int x, int y);
-    void render( int x, int y, SDL_Rect* clip = NULL, double angle = 0.0, SDL_Point* center = NULL, SDL_RendererFlip flip = SDL_FLIP_NONE );
-    //Gets image dimensions
-    int getWidth();
-    int getHeight();
-
-private:
-    //The actual hardware texture
-    SDL_Texture* mTexture;
-
-    //Image dimensions
-    int mWidth;
-    int mHeight;
-
-};
 
 //Button constants
 const int BUTTON_WIDTH = 300;
@@ -64,14 +23,7 @@ const int TOTAL_BUTTONS = 4;
 const int SCREEN_FPS = 60;
 const int SCREEN_TICKS_PER_FRAME = 1000 / SCREEN_FPS;
 
-enum LButtonSprite
-{
-    BUTTON_SPRITE_MOUSE_OUT = 0,
-    BUTTON_SPRITE_MOUSE_OVER_MOTION = 1,
-    BUTTON_SPRITE_MOUSE_DOWN = 2,
-    BUTTON_SPRITE_MOUSE_UP = 3,
-    BUTTON_SPRITE_TOTAL = 4
-};
+
 enum KeyPressSurfaces
 {
     KEY_PRESS_SURFACE_DEFAULT,
@@ -81,60 +33,7 @@ enum KeyPressSurfaces
     KEY_PRESS_SURFACE_RIGHT,
     KEY_PRESS_SURFACE_TOTAL
 };
-//The mouse button
-class LButton
-{
-public:
-    //Initializes internal variables
-    LButton();
 
-    //Sets top left position
-    void setPosition( int x, int y );
-
-    //Handles mouse event
-    void handleEvent( SDL_Event* e );
-
-    //Shows button sprite
-    void render();
-
-private:
-    //Top left position
-    SDL_Point mPosition;
-
-    //Currently used global sprite
-    LButtonSprite mCurrentSprite;
-};
-//The application time based timer
-class LTimer
-{
-public:
-    //Initializes variables
-    LTimer();
-
-    //The various clock actions
-    void start();
-    void stop();
-    void pause();
-    void unpause();
-
-    //Gets the timer's time
-    Uint32 getTicks();
-
-    //Checks the status of the timer
-    bool isStarted();
-    bool isPaused();
-
-private:
-    //The clock time when the timer started
-    Uint32 mStartTicks;
-
-    //The ticks stored when the timer was paused
-    Uint32 mPausedTicks;
-
-    //The timer status
-    bool mPaused;
-    bool mStarted;
-};
 
 SDL_Surface* loadSurface( std::string path );
 //Starts up SDL and creates window
@@ -173,337 +72,8 @@ const int WALKING_ANIMATION_FRAMES = 4;
 SDL_Rect gSpriteClips[ WALKING_ANIMATION_FRAMES ];
 LTexture gSpriteSheetTexture;
 LTexture gFPSTextTexture;
-
-LTimer::LTimer()
-{
-    //Initialize the variables
-    mStartTicks = 0;
-    mPausedTicks = 0;
-
-    mPaused = false;
-    mStarted = false;
-}
-void LTimer::start()
-{
-    //Start the timer
-    mStarted = true;
-
-    //Unpause the timer
-    mPaused = false;
-
-    //Get the current clock time
-    mStartTicks = SDL_GetTicks();
-    mPausedTicks = 0;
-}
-
-void LTimer::stop()
-{
-    //Stop the timer
-    mStarted = false;
-
-    //Unpause the timer
-    mPaused = false;
-
-    //Clear tick variables
-    mStartTicks = 0;
-    mPausedTicks = 0;
-}
-
-void LTimer::pause()
-{
-    //If the timer is running and isn't already paused
-    if( mStarted && !mPaused )
-    {
-        //Pause the timer
-        mPaused = true;
-
-        //Calculate the paused ticks
-        mPausedTicks = SDL_GetTicks() - mStartTicks;
-        mStartTicks = 0;
-    }
-}
-
-void LTimer::unpause()
-{
-    //If the timer is running and paused
-    if( mStarted && mPaused )
-    {
-        //Unpause the timer
-        mPaused = false;
-
-        //Reset the starting ticks
-        mStartTicks = SDL_GetTicks() - mPausedTicks;
-
-        //Reset the paused ticks
-        mPausedTicks = 0;
-    }
-}
-
-Uint32 LTimer::getTicks()
-{
-    //The actual timer time
-    Uint32 time = 0;
-
-    //If the timer is running
-    if( mStarted )
-    {
-        //If the timer is paused
-        if( mPaused )
-        {
-            //Return the number of ticks when the timer was paused
-            time = mPausedTicks;
-        }
-        else
-        {
-            //Return the current time minus the start time
-            time = SDL_GetTicks() - mStartTicks;
-        }
-    }
-
-    return time;
-}
-
-bool LTimer::isStarted()
-{
-    //Timer is running and paused or unpaused
-    return mStarted;
-}
-
-bool LTimer::isPaused()
-{
-    //Timer is running and paused
-    return mPaused && mStarted;
-}
-
-
-LButton::LButton()
-{
-    mPosition.x = 0;
-    mPosition.y = 0;
-
-    mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
-}
-
-void LButton::setPosition( int x, int y )
-{
-    mPosition.x = x;
-    mPosition.y = y;
-}
-void LButton::handleEvent( SDL_Event* e )
-{
-    //If mouse event happened
-    if( e->type == SDL_MOUSEMOTION || e->type == SDL_MOUSEBUTTONDOWN || e->type == SDL_MOUSEBUTTONUP )
-    {
-        //Get mouse position
-        int x, y;
-        SDL_GetMouseState( &x, &y );
-        //Check if mouse is in button
-        bool inside = true;
-
-        //Mouse is left of the button
-        if( x < mPosition.x )
-        {
-            inside = false;
-        }
-        //Mouse is right of the button
-        else if( x > mPosition.x + BUTTON_WIDTH )
-        {
-            inside = false;
-        }
-        //Mouse above the button
-        else if( y < mPosition.y )
-        {
-            inside = false;
-        }
-        //Mouse below the button
-        else if( y > mPosition.y + BUTTON_HEIGHT )
-        {
-            inside = false;
-        }
-        //Mouse is outside button
-        if( !inside )
-        {
-            mCurrentSprite = BUTTON_SPRITE_MOUSE_OUT;
-        }
-        //Mouse is inside button
-        else
-        {
-            //Set mouse over sprite
-            switch( e->type )
-            {
-                case SDL_MOUSEMOTION:
-                    mCurrentSprite = BUTTON_SPRITE_MOUSE_OVER_MOTION;
-                break;
-
-                case SDL_MOUSEBUTTONDOWN:
-                    mCurrentSprite = BUTTON_SPRITE_MOUSE_DOWN;
-                break;
-
-                case SDL_MOUSEBUTTONUP:
-                    mCurrentSprite = BUTTON_SPRITE_MOUSE_UP;
-                break;
-            }
-        }
-    }
-}
-
-
-void LButton::render()
-{
-    //Show current button sprite
-    gButtonSpriteSheetTexture.render( mPosition.x, mPosition.y, &gSpriteClips[ mCurrentSprite ] );
-}
-
-
-LTexture::LTexture()
-{
-    //Initialize
-    mTexture = NULL;
-    mWidth = 0;
-    mHeight = 0;
-}
-LTexture::~LTexture()
-{
-    //Deallocate
-    free();
-}
-
-bool LTexture::loadFromFile( std::string path )
-{
-    //Get rid of preexisting texture
-    free();
-
-    //The final texture
-    SDL_Texture* newTexture = NULL;
-
-    //Load image at specified path
-    SDL_Surface* loadedSurface = IMG_Load( path.c_str() );
-    if( loadedSurface == NULL )
-    {
-        printf( "Unable to load image %s! SDL_image Error: %s\n", path.c_str(), IMG_GetError() );
-    }
-    else
-    {
-        //Color key image
-        SDL_SetColorKey( loadedSurface, SDL_TRUE, SDL_MapRGB( loadedSurface->format, 0, 0xFF, 0xFF ) );
-
-        //Create texture from surface pixels
-        newTexture = SDL_CreateTextureFromSurface( gRenderer, loadedSurface );
-        if( newTexture == NULL )
-        {
-            printf( "Unable to create texture from %s! SDL Error: %s\n", path.c_str(), SDL_GetError() );
-        }
-        else
-        {
-            //Get image dimensions
-            mWidth = loadedSurface->w;
-            mHeight = loadedSurface->h;
-        }
-
-        //Get rid of old loaded surface
-        SDL_FreeSurface( loadedSurface );
-    }
-
-    //Return success
-    mTexture = newTexture;
-    return mTexture != NULL;
-}
-
-bool LTexture::loadFromRenderedText( std::string textureText, SDL_Color textColor )
-{
-    //Get rid of preexisting texture
-    free();
-
-    //Render text surface
-    SDL_Surface* textSurface = TTF_RenderText_Solid( gFont, textureText.c_str(), textColor );
-    if( textSurface == NULL )
-    {
-        printf( "Unable to render text surface! SDL_ttf Error: %s\n", TTF_GetError() );
-    }
-    else
-    {
-        //Create texture from surface pixels
-        mTexture = SDL_CreateTextureFromSurface( gRenderer, textSurface );
-        if( mTexture == NULL )
-        {
-            printf( "Unable to create texture from rendered text! SDL Error: %s\n", SDL_GetError() );
-        }
-        else
-        {
-            //Get image dimensions
-            mWidth = textSurface->w;
-            mHeight = textSurface->h;
-        }
-
-        //Get rid of old surface
-        SDL_FreeSurface( textSurface );
-    }
-
-    //Return success
-    return mTexture != NULL;
-}
-
-void LTexture::free()
-{
-    //Free texture if it exists
-    if( mTexture != NULL )
-    {
-        SDL_DestroyTexture( mTexture );
-        mTexture = NULL;
-        mWidth = 0;
-        mHeight = 0;
-    }
-}
-void LTexture::setColor( Uint8 red, Uint8 green, Uint8 blue )
-{
-    //Modulate texture
-    SDL_SetTextureColorMod( mTexture, red, green, blue );
-}
-void LTexture::setBlendMode( SDL_BlendMode blending )
-{
-    //Set blending function
-    SDL_SetTextureBlendMode( mTexture, blending );
-}
-
-void LTexture::setAlpha( Uint8 alpha )
-{
-    //Modulate texture alpha
-    SDL_SetTextureAlphaMod( mTexture, alpha );
-}
-
-
-void LTexture::renderB( int x, int y )
-{
-    //Set rendering space and render to screen
-    SDL_Rect renderQuad = { x, y, mWidth, mHeight };
-    SDL_RenderCopy( gRenderer, mTexture, NULL, &renderQuad );
-}
-void LTexture::render( int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip )
-{
-    //Set rendering space and render to screen
-    SDL_Rect renderQuad = { x, y, mWidth, mHeight };
-
-    //Set clip rendering dimensions
-    if( clip != NULL )
-    {
-        renderQuad.w = clip->w;
-        renderQuad.h = clip->h;
-    }
-
-    //Render to screen
-    SDL_RenderCopyEx( gRenderer, mTexture, clip, &renderQuad, angle, center, flip );
-}
-
-int LTexture::getWidth()
-{
-    return mWidth;
-}
-
-int LTexture::getHeight()
-{
-    return mHeight;
-}
-
+LTexture gCharTexture;
+// Character* character = NULL;
 
 
 bool init()
@@ -542,6 +112,7 @@ bool init()
 
 
          }
+    // character = new Character(gRenderer, gCharTexture);
     return success;
 }
 
@@ -549,41 +120,16 @@ bool loadMedia()
 {
     //Loading success flag
     bool success = true;
-    //Load sprite sheet texture
-    // if( !gSpriteSheetTexture.loadFromFile( "../assets/dots.png" ) )
-    // {
-    //     printf( "Failed to load sprite sheet texture!\n" );
-    //     success = false;
-    // }
-    // else
-    // {
-    //     //Set top left sprite
-    //     gSpriteClips[ 0 ].x =   0;
-    //     gSpriteClips[ 0 ].y =   0;
-    //     gSpriteClips[ 0 ].w = 100;
-    //     gSpriteClips[ 0 ].h = 100;
-    //
-    //     //Set top right sprite
-    //     gSpriteClips[ 1 ].x = 100;
-    //     gSpriteClips[ 1 ].y =   0;
-    //     gSpriteClips[ 1 ].w = 100;
-    //     gSpriteClips[ 1 ].h = 100;
-    //
-    //     //Set bottom left sprite
-    //     gSpriteClips[ 2 ].x =   0;
-    //     gSpriteClips[ 2 ].y = 100;
-    //     gSpriteClips[ 2 ].w = 100;
-    //     gSpriteClips[ 2 ].h = 100;
-    //
-    //     //Set bottom right sprite
-    //     gSpriteClips[ 3 ].x = 100;
-    //     gSpriteClips[ 3 ].y = 100;
-    //     gSpriteClips[ 3 ].w = 100;
-    //     gSpriteClips[ 3 ].h = 100;
-    // }
 
+    if( !gCharTexture.loadFromFile( "../assets/dot.bmp", gRenderer ) )
+    {
+    printf( "Failed to load dot texture!\n" );
+    success = false;
+    }else {
+        printf("Successfully loaded dot texture.\n");
+    }
     //Load sprites
-    if( !gButtonSpriteSheetTexture.loadFromFile( "../assets/button.png" ) )
+    if( !gButtonSpriteSheetTexture.loadFromFile( "../assets/button.png", gRenderer ) )
     {
         printf( "Failed to load button sprite texture!\n" );
         success = false;
@@ -607,7 +153,7 @@ bool loadMedia()
     }
 
     //Load sprite sheet texture
-    if( !gSpriteSheetTexture.loadFromFile( "../assets/playWalkSprite.png" ) )
+    if( !gSpriteSheetTexture.loadFromFile( "../assets/playWalkSprite.png" ,gRenderer) )
     {
         printf( "Failed to load walking animation texture!\n" );
         success = false;
@@ -646,12 +192,12 @@ bool loadMedia()
     {
         //Render text
         SDL_Color textColor = { 0, 0, 0, 255 };
-        if( !gTextTexture.loadFromRenderedText( "Cowabungah!", textColor ) )
+        if( !gTextTexture.loadFromRenderedText( "Cowabungah!", textColor ,gRenderer, gFont) )
         {
             printf( "Failed to render text texture!\n" );
             success = false;
         }
-        if( !gTimeTextTexture.loadFromRenderedText( "Game time:", textColor ) )
+        if( !gTimeTextTexture.loadFromRenderedText( "Game time:", textColor ,gRenderer, gFont) )
         {
             printf( "Failed to render time text texture!\n" );
             success = false;
@@ -659,14 +205,14 @@ bool loadMedia()
     }
 
     //Load Foo' texture
-    if( !gFooTexture.loadFromFile( "../assets/playerIdle.png" ) )
+    if( !gFooTexture.loadFromFile( "../assets/playerIdle.png" ,gRenderer) )
     {
         printf( "Failed to load Foo' texture image!\n" );
         success = false;
     }
 
     //Load background texture
-    if( !gBackgroundTexture.loadFromFile( "../assets/background_resized.png" ) )
+    if( !gBackgroundTexture.loadFromFile( "../assets/background_resized.png",gRenderer ) )
     {
         printf( "Failed to load background texture image!\n" );
         success = false;
@@ -679,14 +225,6 @@ bool loadMedia()
         printf( "Failed to load texture image!\n" );
         success = false;
     }
-
-    //Load default surface
-    // gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ] = loadSurface( "../assets/blackbuckRight.bmp" );
-    // if( gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ] == NULL )
-    // {
-    //     printf( "Failed to load default image!\n" );
-    //     success = false;
-    // }
 
     //Load up surface
     gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ] = loadSurface( "../assets/blackbuckUp.bmp" );
@@ -784,6 +322,7 @@ void close()
     gFooTexture.free();
     gBackgroundTexture.free();
     gFPSTextTexture.free();
+    // gCharTexture->free();
     //Deallocate surface
     SDL_FreeSurface( goatImg );
     goatImg = NULL;
@@ -853,46 +392,12 @@ int main(int argc, char* argv[]) {
             //Flip type
             SDL_RendererFlip flipType = SDL_FLIP_NONE;
             gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ];
+            Character character(gRenderer, &gCharTexture);
             bool quit = false;
             while( !quit ) {
                 //Start cap timer
                 capTimer.start();
-                // while( SDL_PollEvent( &e ) != 0 ) {
-                //     //User requests quit
-                //     if( e.type == SDL_QUIT )
-                //     {
-                //         quit = true;
-                //     }
-                //     //User presses a key
-                //     else if( e.type == SDL_KEYDOWN )
-                //     {
-                //         // cout << "event: " << "dsa";
-                //         //Select surfaces based on key press
-                //         switch( e.key.keysym.sym )
-                //         {
-                //             case SDLK_UP:
-                //                 cout << "event: " << "dsa";
-                //                 gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_UP ];
-                //             break;
-                //
-                //             case SDLK_DOWN:
-                //                 gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DOWN ];
-                //             break;
-                //
-                //             case SDLK_LEFT:
-                //                 gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_LEFT ];
-                //             break;
-                //
-                //             case SDLK_RIGHT:
-                //                 gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_RIGHT ];
-                //             break;
-                //
-                //             default:
-                //                 gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ];
-                //             break;
-                //         }
-                //     }
-                // }
+
                 while( SDL_PollEvent( &e ) != 0 )
                 {
                     //User requests quit
@@ -900,86 +405,62 @@ int main(int argc, char* argv[]) {
                     {
                         quit = true;
                     }
-                    // else if( e.type == SDL_KEYDOWN )
-                    // {
-                    //     switch( e.key.keysym.sym )
-                    //     {
-                    //         case SDLK_a:
-                    //             degrees -= 60;
-                    //         break;
-                    //
-                    //         case SDLK_d:
-                    //             degrees += 60;
-                    //         break;
-                    //
-                    //         case SDLK_q:
-                    //             flipType = SDL_FLIP_HORIZONTAL;
-                    //         break;
-                    //
-                    //         case SDLK_w:
-                    //             flipType = SDL_FLIP_NONE;
-                    //         break;
-                    //
-                    //         case SDLK_e:
-                    //             flipType = SDL_FLIP_VERTICAL;
-                    //         break;
-                    //     }
-                    //
-                    // }
                     else if( e.type == SDL_KEYDOWN )
                     {
-                        //Start/stop
-                        if( e.key.keysym.sym == SDLK_s )
+                        switch( e.key.keysym.sym )
                         {
-                            if( timer.isStarted() )
-                            {
-                                timer.stop();
-                            }
-                            else
-                            {
-                                timer.start();
-                            }
+                            case SDLK_a:
+                                degrees -= 60;
+                            break;
+
+                            case SDLK_d:
+                                degrees += 60;
+                            break;
+
+                            case SDLK_q:
+                                flipType = SDL_FLIP_HORIZONTAL;
+                            break;
+
+                            case SDLK_w:
+                                flipType = SDL_FLIP_NONE;
+                            break;
+
+                            case SDLK_e:
+                                flipType = SDL_FLIP_VERTICAL;
+                            break;
+                            case SDLK_s:
+                                if( timer.isStarted() )
+                                {
+                                    timer.stop();
+                                }
+                                else
+                                {
+                                    timer.start();
+                                }
+                            break;
+                            case SDLK_p:
+                                if( timer.isPaused() )
+                                {
+                                    timer.unpause();
+                                }
+                                else
+                                {
+                                    timer.pause();
+                                }
+                            break;
+
                         }
-                        //Pause/unpause
-                        else if( e.key.keysym.sym == SDLK_p )
-                        {
-                            if( timer.isPaused() )
-                            {
-                                timer.unpause();
-                            }
-                            else
-                            {
-                                timer.pause();
-                            }
-                        }
+
                     }
+
+                    //Handle input for the dot
+                    character.handleEvent( e );
                     startTime = SDL_GetTicks();
 
-
-
                 }
+                character.move();
                 //Set texture based on current keystate
-                // const Uint8* currentKeyStates = SDL_GetKeyboardState( NULL );
-                // if( currentKeyStates[ SDL_SCANCODE_UP ] )
-                // {
-                //     currentTexture = &gUpTexture;
-                // }
-                // else if( currentKeyStates[ SDL_SCANCODE_DOWN ] )
-                // {
-                //     currentTexture = &gDownTexture;
-                // }
-                // else if( currentKeyStates[ SDL_SCANCODE_LEFT ] )
-                // {
-                //     currentTexture = &gLeftTexture;
-                // }
-                // else if( currentKeyStates[ SDL_SCANCODE_RIGHT ] )
-                // {
-                //     currentTexture = &gRightTexture;
-                // }
-                // else
-                // {
-                //     currentTexture = &gPressTexture;
-                // }
+
 
                 // SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
                 //Calculate and correct fps
@@ -988,47 +469,42 @@ int main(int argc, char* argv[]) {
                 {
                     avgFPS = 0;
                 }
-                // cout << "fps: " << avgFPS;
 
                 // Set text to be rendered
                 timeText.str( "" );
-                // timeText << "Milliseconds since start time " << SDL_GetTicks() - startTime; // Simple SDL based timer
                 timeText << "Seconds since start time " << timer.getTicks() / 1000.f; // custom Timer
                 //Render text
-                if( !gTimeTextTexture.loadFromRenderedText( timeText.str(), textColor ) )
+                if( !gTimeTextTexture.loadFromRenderedText( timeText.str(), textColor,gRenderer,gFont ) )
                 {
                 printf( "Unable to render time texture!\n" );
                 }
                 timeText.str( "" );
                 timeText << "FPS " << avgFPS; // custom Timer
                 //Render text
-                if( !gFPSTextTexture.loadFromRenderedText( timeText.str(), textColor ) )
+                if( !gFPSTextTexture.loadFromRenderedText( timeText.str(), textColor ,gRenderer, gFont) )
                 {
                     printf( "Unable to render FPS texture!\n" );
                 }
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
                 SDL_RenderClear( gRenderer );
-                //Apply the image stretched
-                // SDL_Rect stretchRect;
-                // stretchRect.x = 0;
-                // stretchRect.y = 0;
-                // stretchRect.w = SCREEN_WIDTH;
-                // stretchRect.h = SCREEN_HEIGHT;
-                // SDL_BlitScaled( gCurrentSurface, NULL, gScreenSurface, &stretchRect );
+                gBackgroundTexture.renderB( gRenderer,0, 0 );
+                character.render();
+
                 //Render background texture to screen
-                gBackgroundTexture.renderB( 0, 0 );
-                gTimeTextTexture.renderB( (( SCREEN_WIDTH - gTextTexture.getWidth()) / 2), ( SCREEN_HEIGHT - gTextTexture.getHeight() ));
+                gTimeTextTexture.renderB( gRenderer,(( SCREEN_WIDTH - gTextTexture.getWidth()) / 2), ( SCREEN_HEIGHT - gTextTexture.getHeight() ));
 
                 //Render textures
-                gFPSTextTexture.render(  0 , ( gFPSTextTexture.getHeight() )  );
+                gFPSTextTexture.render(  gRenderer,0 , ( gFPSTextTexture.getHeight() )  );
 
                 //Render current frame
-                gTextTexture.render( ( SCREEN_WIDTH - gTextTexture.getWidth() - 100) , (  gTextTexture.getHeight() ) );
+                gTextTexture.render( gRenderer,( SCREEN_WIDTH - gTextTexture.getWidth() - 100) , (  gTextTexture.getHeight() ) );
 
                 // gFooTexture.render( 240, 190 );
                 //Update screen // Player
                 SDL_Rect* currentClip = &gSpriteClips[ frame / 4 ];
-                gSpriteSheetTexture.render( ( SCREEN_WIDTH - currentClip->w ) / 2, ( SCREEN_HEIGHT - currentClip->h ) / 2, currentClip ,  degrees, NULL, flipType);
+                gSpriteSheetTexture.render( gRenderer,( SCREEN_WIDTH - currentClip->w ) / 2, ( SCREEN_HEIGHT - currentClip->h ) / 2, currentClip ,  degrees, NULL, flipType);
+
+
 
                 //Update screen
                 // SDL_RenderPresent( gRenderer );
@@ -1043,63 +519,6 @@ int main(int argc, char* argv[]) {
                      frame = 0;
                  }
 
-                // //Clear screen
-                // SDL_RenderClear( gRenderer );
-                // //Render top left sprite
-                // gSpriteSheetTexture.render( 0, 0, &gSpriteClips[ 0 ] );
-                //
-                // //Render top right sprite
-                // gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[ 1 ].w, 0, &gSpriteClips[ 1 ] );
-                //
-                // //Render bottom left sprite
-                // gSpriteSheetTexture.render( 0, SCREEN_HEIGHT - gSpriteClips[ 2 ].h, &gSpriteClips[ 2 ] );
-                //
-                // //Render bottom right sprite
-                // gSpriteSheetTexture.render( SCREEN_WIDTH - gSpriteClips[ 3 ].w, SCREEN_HEIGHT - gSpriteClips[ 3 ].h, &gSpriteClips[ 3 ] );
-                // //Update screen
-                // SDL_RenderPresent( gRenderer );
-
-                // SDL_Rect topLeftViewport;
-                // topLeftViewport.x = 0;
-                // topLeftViewport.y = 0;
-                // topLeftViewport.w = SCREEN_WIDTH / 2;
-                // topLeftViewport.h = SCREEN_HEIGHT / 2;
-                // SDL_RenderSetViewport( gRenderer, &topLeftViewport );
-                // //Render texture to screen
-                // SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
-                // //Top right viewport
-                // SDL_Rect topRightViewport;
-                // topRightViewport.x = SCREEN_WIDTH / 2;
-                // topRightViewport.y = 0;
-                // topRightViewport.w = SCREEN_WIDTH / 2;
-                // topRightViewport.h = SCREEN_HEIGHT / 2;
-                // SDL_RenderSetViewport( gRenderer, &topRightViewport );
-                // SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
-                //
-                // //Bottom viewport
-                // SDL_Rect bottomViewport;
-                // bottomViewport.x = 0;
-                // bottomViewport.y = SCREEN_HEIGHT / 2;
-                // bottomViewport.w = SCREEN_WIDTH;
-                // bottomViewport.h = SCREEN_HEIGHT / 2;
-                // SDL_RenderSetViewport( gRenderer, &bottomViewport );
-                //
-                // //Render texture to screen
-                // SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
-                //
-                //
-                // //Update screen
-                // SDL_RenderPresent( gRenderer );
-                //
-                //
-                // //Render texture to screen
-                // SDL_RenderCopy( gRenderer, gTexture, NULL, NULL );
-                //
-                // //Update screen
-                // SDL_RenderPresent( gRenderer );
-                //
-                // // SDL_BlitSurface( gCurrentSurface, NULL, gScreenSurface, NULL );
-                // SDL_UpdateWindowSurface( gWindow );
                 //If frame finished early
                 int frameTicks = capTimer.getTicks();
                 if( frameTicks < SCREEN_TICKS_PER_FRAME )
@@ -1110,7 +529,6 @@ int main(int argc, char* argv[]) {
             }
 
         }
-
 
         close();
         return 0;
