@@ -42,6 +42,8 @@ bool init();
 bool loadMedia();
 //Frees media and shuts down SDL
 void close();
+//Box collision detector
+// bool checkCollision( std::vector<SDL_Rect>& a, std::vector<SDL_Rect>& b);
 //The window we'll be rendering to
 SDL_Window* gWindow = NULL;
 SDL_Renderer* gRenderer = NULL;
@@ -392,7 +394,8 @@ int main(int argc, char* argv[]) {
             //Flip type
             SDL_RendererFlip flipType = SDL_FLIP_NONE;
             gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ];
-            Character character(gRenderer, &gCharTexture);
+            Character character(gRenderer, &gCharTexture, 0, 0);
+            Character enemy(gRenderer, &gCharTexture, 600, 350);
             bool quit = false;
             while( !quit ) {
                 //Start cap timer
@@ -458,7 +461,7 @@ int main(int argc, char* argv[]) {
                     startTime = SDL_GetTicks();
 
                 }
-                character.move();
+                character.move(enemy.getColliders());
                 //Set texture based on current keystate
 
 
@@ -489,6 +492,7 @@ int main(int argc, char* argv[]) {
                 SDL_RenderClear( gRenderer );
                 gBackgroundTexture.renderB( gRenderer,0, 0 );
                 character.render();
+                enemy.render();
 
                 //Render background texture to screen
                 gTimeTextTexture.renderB( gRenderer,(( SCREEN_WIDTH - gTextTexture.getWidth()) / 2), ( SCREEN_HEIGHT - gTextTexture.getHeight() ));
