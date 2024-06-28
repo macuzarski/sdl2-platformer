@@ -75,7 +75,7 @@ SDL_Rect gSpriteClips[ WALKING_ANIMATION_FRAMES ];
 LTexture gSpriteSheetTexture;
 LTexture gFPSTextTexture;
 LTexture gCharTexture;
-// Character* character = NULL;
+LTexture gBGTexture;
 
 
 bool init()
@@ -134,6 +134,12 @@ bool loadMedia()
     if( !gButtonSpriteSheetTexture.loadFromFile( "../assets/button.png", gRenderer ) )
     {
         printf( "Failed to load button sprite texture!\n" );
+        success = false;
+    }
+    //Load background texture
+    if( !gBGTexture.loadFromFile( "..//assets/mapv3.png", gRenderer ) )
+    {
+        printf( "Failed to load background texture!\n" );
         success = false;
     }
     else
@@ -214,7 +220,7 @@ bool loadMedia()
     }
 
     //Load background texture
-    if( !gBackgroundTexture.loadFromFile( "../assets/background_resized.png",gRenderer ) )
+    if( !gBackgroundTexture.loadFromFile( "../assets/map.bmp",gRenderer ) )
     {
         printf( "Failed to load background texture image!\n" );
         success = false;
@@ -324,6 +330,7 @@ void close()
     gFooTexture.free();
     gBackgroundTexture.free();
     gFPSTextTexture.free();
+    gBGTexture.free();
     // gCharTexture->free();
     //Deallocate surface
     SDL_FreeSurface( goatImg );
@@ -396,6 +403,9 @@ int main(int argc, char* argv[]) {
             gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ];
             Character character(gRenderer, &gCharTexture, 0, 0);
             Character enemy(gRenderer, &gCharTexture, 600, 350);
+            SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
+            //The background scrolling offset
+            int scrollingOffset = 0;
             bool quit = false;
             while( !quit ) {
                 //Start cap timer
@@ -412,44 +422,22 @@ int main(int argc, char* argv[]) {
                     {
                         switch( e.key.keysym.sym )
                         {
-                            case SDLK_a:
-                                degrees -= 60;
-                            break;
+                            case SDLK_a:degrees -= 60;break;
 
-                            case SDLK_d:
-                                degrees += 60;
-                            break;
+                            case SDLK_d:degrees += 60;break;
 
-                            case SDLK_q:
-                                flipType = SDL_FLIP_HORIZONTAL;
-                            break;
+                            case SDLK_q:flipType = SDL_FLIP_HORIZONTAL;break;
 
-                            case SDLK_w:
-                                flipType = SDL_FLIP_NONE;
-                            break;
+                            case SDLK_w:flipType = SDL_FLIP_NONE;break;
 
-                            case SDLK_e:
-                                flipType = SDL_FLIP_VERTICAL;
-                            break;
+                            case SDLK_e:flipType = SDL_FLIP_VERTICAL;break;
+
                             case SDLK_s:
-                                if( timer.isStarted() )
-                                {
-                                    timer.stop();
-                                }
-                                else
-                                {
-                                    timer.start();
-                                }
+                                // if( timer.isStarted() ){timer.stop();}else{timer.start();}
+                                ( timer.isStarted() )?timer.stop():timer.start();
                             break;
                             case SDLK_p:
-                                if( timer.isPaused() )
-                                {
-                                    timer.unpause();
-                                }
-                                else
-                                {
-                                    timer.pause();
-                                }
+                                ( timer.isPaused() )?timer.unpause():timer.pause();
                             break;
 
                         }
@@ -461,8 +449,18 @@ int main(int argc, char* argv[]) {
                     startTime = SDL_GetTicks();
 
                 }
+
                 character.move(enemy.getColliders());
-                //Set texture based on current keystate
+                //Center the camera over the dot
+                camera.x = ( character.getPosX() + Character::CHARACTER_WIDTH / 2 ) - SCREEN_WIDTH / 2;
+                camera.y = ( character.getPosY() + Character::CHARACTER_HEIGHT / 2 ) - SCREEN_HEIGHT / 2;
+                //Scroll background
+                // --scrollingOffset;
+                // if( scrollingOffset < -gBGTexture.getWidth() )
+                // {
+                //     scrollingOffset = 0;
+                // }
+
 
 
                 // SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
@@ -489,10 +487,30 @@ int main(int argc, char* argv[]) {
                     printf( "Unable to render FPS texture!\n" );
                 }
                 SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
+                //Keep the camera in bounds
+                if( camera.x < 0 )
+                {
+                    camera.x = 0;
+                }
+                if( camera.y < 0 )
+                {
+                    camera.y = 0;
+                }
+                if( camera.x > LEVEL_WIDTH - camera.w )
+                {
+                    camera.x = LEVEL_WIDTH - camera.w;
+                }
+                if( camera.y > LEVEL_HEIGHT - camera.h )
+                {
+                    camera.y = LEVEL_HEIGHT - camera.h;
+                }
                 SDL_RenderClear( gRenderer );
-                gBackgroundTexture.renderB( gRenderer,0, 0 );
-                character.render();
-                enemy.render();
+                // gBackgroundTexture.renderB( gRenderer,0, 0 );
+                // gBGTexture.renderB(gRenderer, scrollingOffset, 0 );
+                // gBGTexture.renderB(gRenderer, scrollingOffset + gBGTexture.getWidth(), 0 );
+                gBGTexture.render(gRenderer,0,0, &camera);
+                character.render(camera.x, camera.y);
+                enemy.render(camera.x, camera.y);
 
                 //Render background texture to screen
                 gTimeTextTexture.renderB( gRenderer,(( SCREEN_WIDTH - gTextTexture.getWidth()) / 2), ( SCREEN_HEIGHT - gTextTexture.getHeight() ));

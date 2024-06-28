@@ -130,7 +130,7 @@ void Character::move(std::vector<SDL_Rect>& otherColliders)
     shiftColliders();
 
     //If the character went too far to the left or right
-    if( ( mPosX < 0 ) || ( mPosX + CHARACTER_WIDTH > SCREEN_WIDTH )|| checkCollision( mColliders, otherColliders ) )
+    if( ( mPosX < 0 ) || ( mPosX + CHARACTER_WIDTH > LEVEL_WIDTH )|| checkCollision( mColliders, otherColliders ) )
     {
         //Move back
         mPosX -= mVelX;
@@ -141,7 +141,7 @@ void Character::move(std::vector<SDL_Rect>& otherColliders)
     shiftColliders();
 
     //If the character went too far up or down
-    if( ( mPosY < 0 ) || ( mPosY + CHARACTER_HEIGHT > SCREEN_HEIGHT ) || checkCollision( mColliders, otherColliders ))
+    if( ( mPosY < 0 ) || ( mPosY + CHARACTER_HEIGHT > GROUND_LEVEL ) || checkCollision( mColliders, otherColliders ))
     {
         //Move back
         mPosY -= mVelY;
@@ -168,10 +168,7 @@ void Character::shiftColliders()
     }
 }
 
-std::vector<SDL_Rect>& Character::getColliders()
-{
-    return mColliders;
-}
+
 
 void Character::render()
 {
@@ -180,5 +177,26 @@ void Character::render()
     // std::cout << gCharacterTexture.getTexturePath();
     printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
 
+}void Character::render(int camX, int camY)
+{
+    //Show the character
+    gCharacterTexture->renderB( renderer, mPosX - camX, mPosY - camY);
+    // std::cout << gCharacterTexture.getTexturePath();
+    printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
+
+}
+std::vector<SDL_Rect>& Character::getColliders()
+{
+    return mColliders;
+}
+
+int Character::getPosX()
+{
+    return mPosX;
+}
+
+int Character::getPosY()
+{
+    return mPosY;
 }
 

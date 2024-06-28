@@ -30,9 +30,14 @@ public:
 
     //Shows the character on the screen
     void render();
+    void render(int camX, int camY);
 
     //Gets the collision boxes
-        std::vector<SDL_Rect>& getColliders();
+    std::vector<SDL_Rect>& getColliders();
+
+    //Position accessors
+    int getPosX();
+    int getPosY();
 
 private:
     //The X and Y offsets of the character
