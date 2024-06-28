@@ -18,6 +18,9 @@ public:
 
     //Maximum axis velocity of the character
     static const int CHARACTER_VEL = 5;
+    //Jump stats
+    static const int JUMP_VELOCITY = 10;
+    static const int GRAVITY = 1;
 
     //Initializes the variables
     Character(SDL_Renderer* render, LTexture* texture, int x, int y );
@@ -46,6 +49,8 @@ private:
     //The velocity of the character
     int mVelX, mVelY;
 
+    bool mJumping;
+    int mJumpStartY;
     SDL_Renderer* renderer;
     LTexture* gCharacterTexture;
     //character's collision box

@@ -55,6 +55,8 @@ Character::Character(SDL_Renderer* render, LTexture* texture, int x, int y )
     //Initialize the velocity
     mVelX = 0;
     mVelY = 0;
+    mJumping = false;
+    mJumpStartY = 0;
 
     //Initialize the collision boxes' width and height
     mColliders[ 0 ].w = 6;
@@ -105,7 +107,14 @@ void Character::handleEvent( SDL_Event& e )
         //Adjust the velocity
         switch( e.key.keysym.sym )
         {
-            case SDLK_UP: mVelY -= CHARACTER_VEL; break;
+            // case SDLK_UP: mVelY -= CHARACTER_VEL; break;
+            case SDLK_UP:
+                if (!mJumping) {
+                    mVelY = -JUMP_VELOCITY;
+                    mJumping = true;
+                    mJumpStartY = mPosY;
+                }
+            break;
             case SDLK_DOWN: mVelY += CHARACTER_VEL; break;
             case SDLK_LEFT: mVelX -= CHARACTER_VEL; break;
             case SDLK_RIGHT: mVelX += CHARACTER_VEL; break;
@@ -136,6 +145,19 @@ void Character::move(std::vector<SDL_Rect>& otherColliders)
         mPosX -= mVelX;
         shiftColliders();
     }
+
+    //Jump move new
+    if (mJumping) {
+        mPosY += mVelY;
+        mVelY += GRAVITY;
+
+        if (mPosY >= mJumpStartY) {
+            mPosY = mJumpStartY;
+            mJumping = false;
+            mVelY = 0;
+        }
+    }
+
     //Move the character up or down
     mPosY += mVelY;
     shiftColliders();

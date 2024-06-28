@@ -375,9 +375,6 @@ int main(int argc, char* argv[]) {
             printf( "Failed to load media!\n" );
         }
         else {
-            //Set default current surface
-            //Apply the image
-            //Current animation frame
             int frame = 0;
             SDL_Event e;
             LTexture* currentTexture = NULL;
@@ -401,11 +398,11 @@ int main(int argc, char* argv[]) {
             //Flip type
             SDL_RendererFlip flipType = SDL_FLIP_NONE;
             gCurrentSurface = gKeyPressSurfaces[ KEY_PRESS_SURFACE_DEFAULT ];
-            Character character(gRenderer, &gCharTexture, 0, 0);
-            Character enemy(gRenderer, &gCharTexture, 600, 350);
+            Character character(gRenderer, &gCharTexture, 0, GROUND_FLOOR);
+            Character enemy(gRenderer, &gCharTexture, 600, GROUND_FLOOR);
             SDL_Rect camera = { 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT };
             //The background scrolling offset
-            int scrollingOffset = 0;
+            // int scrollingOffset = 0;
             bool quit = false;
             while( !quit ) {
                 //Start cap timer

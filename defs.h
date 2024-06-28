@@ -8,4 +8,5 @@
 const int LEVEL_WIDTH = 3624;
 const int LEVEL_HEIGHT = 720;
 const int GROUND_LEVEL = 575;
+const int GROUND_FLOOR = 555;
 #endif
