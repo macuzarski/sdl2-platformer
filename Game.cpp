@@ -7,16 +7,15 @@
 
 #include "defs.h"
 #include "LTexture.h"
-#include <iostream>
 #include <SDL.h>
 #include <SDL_image.h>
 #include <SDL_ttf.h>
-#include <cmath>
 #include <sstream>
 #include <string>
 #include "Character.h"
 #include "LTimer.h"
 #include "LButton.h"
+#include <SDL_mixer.h>
 
 
 //Button constants
@@ -53,8 +52,6 @@ SDL_Window *gWindow = NULL;
 SDL_Renderer *gRenderer = NULL;
 //The surface contained by the window
 SDL_Surface *gScreenSurface = NULL;
-//The image we will load and show on the screen
-SDL_Surface *goatImg = NULL;
 //The images that correspond to a keypress
 SDL_Surface *gKeyPressSurfaces[KEY_PRESS_SURFACE_TOTAL];
 //Current displayed image
@@ -63,25 +60,23 @@ SDL_Surface *gCurrentSurface = NULL;
 SDL_Texture *gTexture = NULL;
 //Globally used font
 TTF_Font *gFont = NULL;
+//The music that will be played
+Mix_Music* gMusic = NULL;
 
 //Loads individual image as texture
 SDL_Texture *loadTexture(std::string path);
 
 LTexture gTextTexture;
 LTexture gTimeTextTexture;
-LTexture gFooTexture;
-LTexture gBackgroundTexture;
 LTexture gButtonSpriteSheetTexture;
-// SDL_Rect gSpriteClips[ 4 ];
 SDL_Rect gButtonSpriteClips[BUTTON_SPRITE_TOTAL];
 LButton gButtons[TOTAL_BUTTONS];
-// LTexture gSpriteSheetTexture;
-const int WALKING_ANIMATION_FRAMES = 7;
+const int WALKING_ANIMATION_FRAMES = 14;
 SDL_Rect gToroClips[WALKING_ANIMATION_FRAMES];
 LTexture gToroAnimated;;
 LTexture gFPSTextTexture;
-LTexture gCharTexture;
 LTexture gBGTexture;
+std::vector<Enemy> enemies;
 
 
 bool init() {
@@ -92,15 +87,20 @@ bool init() {
     SDL_Init(SDL_INIT_EVERYTHING);
 
     if (auto error = SDL_CreateWindowAndRenderer(SCREEN_WIDTH, SCREEN_HEIGHT,
-                                                 SDL_WINDOW_SHOWN | SDL_RENDERER_ACCELERATED, &gWindow, &gRenderer)) {
+                                                 SDL_WINDOW_SHOWN | SDL_RENDERER_ACCELERATED | SDL_INIT_AUDIO , &gWindow, &gRenderer)) {
         printf("Error creating Window: %s\n", SDL_GetError());
         success = false;
     } else {
         //Initialize PNG loading
-        // SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
         int imgFlags = IMG_INIT_PNG;
         if (!(IMG_Init(imgFlags) & imgFlags)) {
             printf("SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError());
+            success = false;
+        }
+        //Initialize SDL_mixer
+        if( Mix_OpenAudio( 44100, MIX_DEFAULT_FORMAT, 2, 2048 ) < 0 )
+        {
+            printf( "SDL_mixer could not initialize! SDL_mixer Error: %s\n", Mix_GetError() );
             success = false;
         }
         //Initialize SDL_ttf
@@ -113,7 +113,6 @@ bool init() {
             SDL_SetWindowTitle(gWindow, "Cowabunger");
         }
     }
-    // character = new Character(gRenderer, gCharTexture);
     return success;
 }
 
@@ -121,12 +120,6 @@ bool loadMedia() {
     //Loading success flag
     bool success = true;
 
-    if (!gCharTexture.loadFromFile("../assets/dot.bmp", gRenderer)) {
-        printf("Failed to load dot texture!\n");
-        success = false;
-    } else {
-        printf("Successfully loaded dot texture.\n");
-    }
     //Load sprites
     if (!gButtonSpriteSheetTexture.loadFromFile("../assets/button.png", gRenderer)) {
         printf("Failed to load button sprite texture!\n");
@@ -137,116 +130,105 @@ bool loadMedia() {
         printf("Failed to load background texture!\n");
         success = false;
     } else {
-        //Set sprites
-        for (int i = 0; i < BUTTON_SPRITE_TOTAL; ++i) {
-            // gSpriteClips[ i ].x = 0;
-            // gSpriteClips[ i ].y = i * 200;
-            // gSpriteClips[ i ].w = BUTTON_WIDTH;
-            // gSpriteClips[ i ].h = BUTTON_HEIGHT;
-        }
+        //TODO:
+        // //Set sprites
+        // for (int i = 0; i < BUTTON_SPRITE_TOTAL; ++i) {
+        //     gSpriteClips[ i ].x = 0;
+        //     gSpriteClips[ i ].y = i * 200;
+        //     gSpriteClips[ i ].w = BUTTON_WIDTH;
+        //     gSpriteClips[ i ].h = BUTTON_HEIGHT;
+        // }
 
         //Set buttons in corners
-        gButtons[0].setPosition(0, 0);
-        gButtons[1].setPosition(SCREEN_WIDTH - BUTTON_WIDTH, 0);
-        gButtons[2].setPosition(0, SCREEN_HEIGHT - BUTTON_HEIGHT);
-        gButtons[3].setPosition(SCREEN_WIDTH - BUTTON_WIDTH, SCREEN_HEIGHT - BUTTON_HEIGHT);
+        // gButtons[0].setPosition(0, 0);
+        // gButtons[1].setPosition(SCREEN_WIDTH - BUTTON_WIDTH, 0);
+        // gButtons[2].setPosition(0, SCREEN_HEIGHT - BUTTON_HEIGHT);
+        // gButtons[3].setPosition(SCREEN_WIDTH - BUTTON_WIDTH, SCREEN_HEIGHT - BUTTON_HEIGHT);
+    }
+
+    //Load music
+    gMusic = Mix_LoadMUS( "../assets/bgm.mp3" );
+    if( gMusic == NULL )
+    {
+        printf( "Failed to load beat music! SDL_mixer Error: %s\n", Mix_GetError() );
+        success = false;
     }
 
     // Load sprite sheet texture
-     if (!gToroAnimated.loadFromFile("../assets/toro.png", gRenderer)) {
-         printf("Failed to load walking animation texture!\n");
-         success = false;
-     } else {
-         //Set sprite clips
-         gToroClips[0].x = 0;
-         gToroClips[0].y = 0;
-         gToroClips[0].w = 111;
-         gToroClips[0].h = 81;
+    if (!gToroAnimated.loadFromFile("../assets/toro.png", gRenderer)) {
+        printf("Failed to load walking animation texture!\n");
+        success = false;
+    } else {
+        //Set sprite clips
+        gToroClips[0].x = 0;
+        gToroClips[0].y = 0;
+        gToroClips[0].w = 111;
+        gToroClips[0].h = 81;
 
-         gToroClips[1].x = 111;
-         gToroClips[1].y = 0;
-         gToroClips[1].w = 111;
-         gToroClips[1].h = 81;
+        gToroClips[1].x = 111;
+        gToroClips[1].y = 0;
+        gToroClips[1].w = 111;
+        gToroClips[1].h = 81;
 
-         gToroClips[2].x = 222;
-         gToroClips[2].y = 0;
-         gToroClips[2].w = 111;
-         gToroClips[2].h = 81;
+        gToroClips[2].x = 222;
+        gToroClips[2].y = 0;
+        gToroClips[2].w = 111;
+        gToroClips[2].h = 81;
 
-         gToroClips[3].x = 333;
-         gToroClips[3].y = 0;
-         gToroClips[3].w = 111;
-         gToroClips[3].h = 81;
+        gToroClips[3].x = 333;
+        gToroClips[3].y = 0;
+        gToroClips[3].w = 111;
+        gToroClips[3].h = 81;
 
-         gToroClips[4].x = 444;
-         gToroClips[4].y = 0;
-         gToroClips[4].w = 111;
-         gToroClips[4].h = 81;
+        gToroClips[4].x = 444;
+        gToroClips[4].y = 0;
+        gToroClips[4].w = 111;
+        gToroClips[4].h = 81;
 
-         gToroClips[5].x = 555;
-         gToroClips[5].y = 0;
-         gToroClips[5].w = 111;
-         gToroClips[5].h = 81;
+        gToroClips[5].x = 555;
+        gToroClips[5].y = 0;
+        gToroClips[5].w = 111;
+        gToroClips[5].h = 81;
 
-         gToroClips[6].x = 666;
-         gToroClips[6].y = 0;
-         gToroClips[6].w = 111;
-         gToroClips[6].h = 81;
+        gToroClips[6].x = 666;
+        gToroClips[6].y = 0;
+        gToroClips[6].w = 111;
+        gToroClips[6].h = 81;
 
-        // gToroClips[7].x = 0;
-        // gToroClips[7].y = 81;
-        // gToroClips[7].w = 111;
-        // gToroClips[7].h = 81;
-        //
-        // gToroClips[8].x = 111;
-        // gToroClips[8].y = 81;
-        // gToroClips[8].w = 111;
-        // gToroClips[8].h = 81;
-        //
-        // gToroClips[9].x = 222;
-        // gToroClips[9].y = 81;
-        // gToroClips[9].w = 111;
-        // gToroClips[9].h = 81;
-        //
-        // gToroClips[10].x = 333;
-        // gToroClips[10].y = 81;
-        // gToroClips[10].w = 111;
-        // gToroClips[10].h = 81;
-        //
-        // gToroClips[11].x = 444;
-        // gToroClips[11].y = 81;
-        // gToroClips[11].w = 111;
-        // gToroClips[11].h = 81;
-        //
-        // gToroClips[12].x = 555;
-        // gToroClips[12].y = 81;
-        // gToroClips[12].w = 111;
-        // gToroClips[12].h = 81;
-        //
-        // gToroClips[13].x = 666;
-        // gToroClips[13].y = 81;
-        // gToroClips[13].w = 111;
-        // gToroClips[13].h = 81;
-        //
-        // gToroClips[14].x = 0;
-        // gToroClips[14].y = 162;
-        // gToroClips[14].w = 111;
-        // gToroClips[14].h = 81;
-        //
-        // gToroClips[15].x = 111;
-        // gToroClips[15].y = 162;
-        // gToroClips[15].w = 111;
-        // gToroClips[15].h = 81;
-        //
-        // gToroClips[16].x = 222;
-        // gToroClips[16].y = 162;
-        // gToroClips[16].w = 111;
-        // gToroClips[16].h = 81;
-        //
-        // gToroClips[17].x = 333;
-        // gToroClips[17].y = 162;
-        // gToroClips[17].w = 111;
-        // gToroClips[17].h = 81;
+        gToroClips[7].x = 0;
+        gToroClips[7].y = 81;
+        gToroClips[7].w = 111;
+        gToroClips[7].h = 81;
+
+        gToroClips[8].x = 111;
+        gToroClips[8].y = 81;
+        gToroClips[8].w = 111;
+        gToroClips[8].h = 81;
+
+        gToroClips[9].x = 222;
+        gToroClips[9].y = 81;
+        gToroClips[9].w = 111;
+        gToroClips[9].h = 81;
+
+        gToroClips[10].x = 333;
+        gToroClips[10].y = 81;
+        gToroClips[10].w = 111;
+        gToroClips[10].h = 81;
+
+        gToroClips[11].x = 444;
+        gToroClips[11].y = 81;
+        gToroClips[11].w = 111;
+        gToroClips[11].h = 81;
+
+        gToroClips[12].x = 555;
+        gToroClips[12].y = 81;
+        gToroClips[12].w = 111;
+        gToroClips[12].h = 81;
+
+        gToroClips[13].x = 666;
+        gToroClips[13].y = 81;
+        gToroClips[13].w = 111;
+        gToroClips[13].h = 81;
     }
     //Open the font
     gFont = TTF_OpenFont("../assets/woodyFont.ttf", 28);
@@ -265,21 +247,7 @@ bool loadMedia() {
             success = false;
         }
     }
-
-    //Load background texture
-    if (!gBackgroundTexture.loadFromFile("../assets/map.bmp", gRenderer)) {
-        printf("Failed to load background texture image!\n");
-        success = false;
-    }
-
-    //Load PNG texture
-    gTexture = loadTexture("../assets/cowRight.png");
-    if (gTexture == NULL) {
-        printf("Failed to load texture image!\n");
-        success = false;
-    }
     return success;
-
 }
 
 
@@ -296,7 +264,6 @@ SDL_Surface *loadSurface(std::string path) {
         if (optimizedSurface == NULL) {
             printf("Unable to optimize image %s! SDL Error: %s\n", path.c_str(), SDL_GetError());
         }
-
         //Get rid of old loaded surface
         SDL_FreeSurface(loadedSurface);
     }
@@ -328,16 +295,13 @@ SDL_Texture *loadTexture(std::string path) {
 
 void close() {
     //Free loaded images
-    gFooTexture.free();
-    gBackgroundTexture.free();
     gFPSTextTexture.free();
     gBGTexture.free();
-    // gToroAnimated.free();
-    // gCharTexture->free();
-    gCharTexture.free();
-    //Deallocate surface
-    SDL_FreeSurface(goatImg);
-    goatImg = NULL;
+    gToroAnimated.free();
+
+    //Free the music
+    Mix_FreeMusic( gMusic );
+    gMusic = NULL;
 
     //Free loaded image
     SDL_DestroyTexture(gTexture);
@@ -360,7 +324,6 @@ void close() {
     SDL_Quit();
 }
 
-
 void run() {
     using namespace std;
     if (!init()) {
@@ -370,15 +333,17 @@ void run() {
         if (!loadMedia()) {
             printf("Failed to load media!\n");
         } else {
+            //If there is no music playing
+            if( Mix_PlayingMusic() == 0 )
+            {
+                //Play the music
+                Mix_PlayMusic( gMusic, -1 );
+            }
             int frame = 0;
             SDL_Event e;
             LTexture *currentTexture = NULL;
-            //Angle of rotation
-            double degrees = 0;
             //Set text color as black
             SDL_Color textColor = {0, 0, 0, 255};
-            //Current time start time
-            Uint32 startTime = 0;
             //In memory text stream
             std::stringstream timeText;
             LTimer timer;
@@ -390,16 +355,17 @@ void run() {
             int countedFrames = 0;
             fpsTimer.start();
 
-            //Flip type
-            SDL_RendererFlip flipType = SDL_FLIP_NONE;
             gCurrentSurface = gKeyPressSurfaces[KEY_PRESS_SURFACE_DEFAULT];
-            Character character(gRenderer, &gToroAnimated, gToroClips,7, 0, GROUND_FLOOR);
+            Player character(gRenderer, &gToroAnimated, gToroClips, 7, 0, GROUND_FLOOR);
             // Character character(gRenderer, &gToroAnimated, 0, GROUND_FLOOR);
-            Character enemy(gRenderer, &gToroAnimated, gToroClips,7, 250, GROUND_FLOOR);
-            // Character enemy(gRenderer, &gCharTexture, 600, GROUND_FLOOR);
+            enemies.push_back(Enemy(gRenderer, &gToroAnimated, gToroClips, 7, 250, GROUND_FLOOR));
+            enemies.push_back(Enemy(gRenderer, &gToroAnimated, gToroClips, 7, 500, GROUND_FLOOR));
+            enemies.push_back(Enemy(gRenderer, &gToroAnimated, gToroClips, 7, 900, GROUND_FLOOR));
+            enemies.push_back(Enemy(gRenderer, &gToroAnimated, gToroClips, 7, 1500, GROUND_FLOOR));
+            enemies.push_back(Enemy(gRenderer, &gToroAnimated, gToroClips, 7, 2000, GROUND_FLOOR));
+
             SDL_Rect camera = {0, 0, SCREEN_WIDTH, SCREEN_HEIGHT};
-            //The background scrolling offset
-            // int scrollingOffset = 0;
+
             bool quit = false;
             timer.start();
             while (!quit) {
@@ -410,45 +376,25 @@ void run() {
                     //User requests quit
                     if (e.type == SDL_QUIT) {
                         quit = true;
-                    } else if (e.type == SDL_KEYDOWN) {
-                        switch (e.key.keysym.sym) {
-                            case SDLK_a: degrees -= 60;
-                                break;
-
-                            case SDLK_d: degrees += 60;
-                                break;
-
-                            case SDLK_q: flipType = SDL_FLIP_HORIZONTAL;
-                                break;
-
-                            case SDLK_w: flipType = SDL_FLIP_NONE;
-                                break;
-
-                            case SDLK_e: flipType = SDL_FLIP_VERTICAL;
-                                break;
-
-                            case SDLK_s:
-                                // if( timer.isStarted() ){timer.stop();}else{timer.start();}
-                                (timer.isStarted()) ? timer.stop() : timer.start();
-                                break;
-                            case SDLK_p:
-                                (timer.isPaused()) ? timer.unpause() : timer.pause();
-                                break;
-                        }
                     }
 
                     //Handle input for the dot
                     character.handleEvent(e);
-                    startTime = SDL_GetTicks();
                 }
 
-                character.move(enemy.getColliders());
+                std::vector<SDL_Rect> colliders;
+                for (auto &enemy: enemies) {
+                    auto &enemyColliders = enemy.getColliders();
+                    colliders.insert(colliders.end(), enemyColliders.begin(), enemyColliders.end());
+                    enemy.setCurrentClip(frame + 7);
+                }
+                character.move(colliders);
                 character.setCurrentClip(frame);
+
                 //Center the camera over the dot
                 camera.x = (character.getPosX() + Character::CHARACTER_WIDTH / 2) - SCREEN_WIDTH / 2;
                 camera.y = (character.getPosY() + Character::CHARACTER_HEIGHT / 2) - SCREEN_HEIGHT / 2;
 
-                // SDL_SetRenderDrawColor( gRenderer, 0xFF, 0xFF, 0xFF, 0xFF );
                 //Calculate and correct fps
                 float avgFPS = countedFrames / (fpsTimer.getTicks() / 1000.f);
                 if (avgFPS > 20000) {
@@ -485,7 +431,9 @@ void run() {
                 SDL_RenderClear(gRenderer);
                 gBGTexture.render(gRenderer, 0, 0, &camera);
                 character.render(camera.x, camera.y);
-                enemy.render(camera.x, camera.y);
+                for (auto value: enemies) {
+                    value.render(camera.x, camera.y);
+                }
 
                 //Render background texture to screen
                 gTimeTextTexture.renderB(gRenderer, ((SCREEN_WIDTH - gTextTexture.getWidth()) / 2),
@@ -498,12 +446,6 @@ void run() {
                 gTextTexture.render(gRenderer, (SCREEN_WIDTH - gTextTexture.getWidth() - 100),
                                     (gTextTexture.getHeight()));
 
-                // gFooTexture.render( 240, 190 );
-                //Update screen // Player
-                // SDL_Rect *currentClip = &gToroClips[frame / 4];
-                // gToroAnimated.render(gRenderer, (SCREEN_WIDTH - currentClip->w) / 2,
-                // (SCREEN_HEIGHT - currentClip->h) / 2, currentClip, degrees, NULL, flipType);
-
 
                 //Update screen
                 // SDL_RenderPresent( gRenderer );
@@ -513,8 +455,8 @@ void run() {
                 ++frame;
 
                 // Cycle animation
-                if (frame / 4 >= WALKING_ANIMATION_FRAMES) {
-                frame = 0;
+                if (frame / 4 >= 7) {
+                    frame = 0;
                 }
 
                 //If frame finished early

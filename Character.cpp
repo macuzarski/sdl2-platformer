@@ -4,8 +4,7 @@
 #include "Character.h"
 #include "defs.h"
 #include "LTexture.h"
-SDL_RendererFlip flip;
-
+bool onTopOfEnemy = false;
 bool checkCollision( std::vector<SDL_Rect>& a, std::vector<SDL_Rect>& b )
 {
     //The sides of the rectangles
@@ -51,7 +50,7 @@ Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, in
     mPosY = y;
 
     //Create the necessary SDL_Rects
-    mColliders.resize( 11 );
+    mColliders.resize( 8 );
 
     //Initialize the velocity
     mVelX = 0;
@@ -61,38 +60,38 @@ Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, in
     mMoving = false;
 
     //Initialize the collision boxes' width and height
-    mColliders[ 0 ].w = 6;
-    mColliders[ 0 ].h = 1;
+    mColliders[ 0 ].w = 80;
+    mColliders[ 0 ].h = 7;
 
-    mColliders[ 1 ].w = 10;
-    mColliders[ 1 ].h = 1;
+    mColliders[ 1 ].w = 80;
+    mColliders[ 1 ].h = 7;
 
-    mColliders[ 2 ].w = 14;
-    mColliders[ 2 ].h = 1;
+    mColliders[ 2 ].w = 80;
+    mColliders[ 2 ].h = 7;
 
-    mColliders[ 3 ].w = 16;
-    mColliders[ 3 ].h = 2;
+    mColliders[ 3 ].w = 80;
+    mColliders[ 3 ].h = 7;
 
-    mColliders[ 4 ].w = 18;
-    mColliders[ 4 ].h = 2;
+    mColliders[ 4 ].w = 80;
+    mColliders[ 4 ].h = 7;
 
-    mColliders[ 5 ].w = 20;
-    mColliders[ 5 ].h = 6;
+    mColliders[ 5 ].w = 80;
+    mColliders[ 5 ].h = 7;
 
-    mColliders[ 6 ].w = 18;
-    mColliders[ 6 ].h = 2;
+    mColliders[ 6 ].w = 80;
+    mColliders[ 6 ].h = 5;
 
-    mColliders[ 7 ].w = 16;
-    mColliders[ 7 ].h = 2;
+    mColliders[ 7 ].w = 80;
+    mColliders[ 7 ].h = 5;
 
-    mColliders[ 8 ].w = 14;
-    mColliders[ 8 ].h = 1;
-
-    mColliders[ 9 ].w = 10;
-    mColliders[ 9 ].h = 1;
-
-    mColliders[ 10 ].w = 6;
-    mColliders[ 10 ].h = 1;
+    // mColliders[ 8 ].w = 14;
+    // mColliders[ 8 ].h = 1;
+    //
+    // mColliders[ 9 ].w = 14;
+    // mColliders[ 9 ].h = 1;
+    //
+    // mColliders[ 10 ].w = 14;
+    // mColliders[ 10 ].h = 1;
 
     //Initialize colliders relative to position
     shiftColliders();
@@ -102,78 +101,90 @@ Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, in
     mClips = clips;
     mNumClips = numClips;
     mCurrentClipIndex = 0;
-    mFlip = SDL_FLIP_NONE;
+
 }
 
-void Character::handleEvent( SDL_Event& e )
-{
-    //If a key was pressed
-    if( e.type == SDL_KEYDOWN && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        mMoving = true;
-        switch( e.key.keysym.sym )
-        {
-            // case SDLK_UP: mVelY -= CHARACTER_VEL; break;
-            case SDLK_UP:
-                if (!mJumping) {
-                    mVelY = -JUMP_VELOCITY;
-                    mJumping = true;
-                    mJumpStartY = mPosY;
-                }
-            break;
-            case SDLK_DOWN: mVelY += CHARACTER_VEL; break;
-            case SDLK_LEFT: mVelX -= CHARACTER_VEL; flip=SDL_FLIP_HORIZONTAL; break;
-            case SDLK_RIGHT: mVelX += CHARACTER_VEL; flip=SDL_FLIP_NONE; break;
-        }
-    }    //If a key was released
-    else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
-    {
-        //Adjust the velocity
-        switch( e.key.keysym.sym )
-        {
-
-            case SDLK_LEFT: mVelX += CHARACTER_VEL; mMoving = false;break;
-            case SDLK_RIGHT: mVelX -= CHARACTER_VEL; mMoving = false;break;
-        }
-    }
-}
 void Character::move(std::vector<SDL_Rect>& otherColliders)
 {
-    //Move the character left or right
+    printf("on enemy (%d)\n", onTopOfEnemy);
+    // Move the character left or right
     mPosX += mVelX;
     shiftColliders();
 
-    //If the character went too far to the left or right
-    if( ( mPosX < 0 ) || ( mPosX + CHARACTER_WIDTH > LEVEL_WIDTH )|| checkCollision( mColliders, otherColliders ) )
-    {
-        //Move back
+    // If the character went too far to the left or right
+    if ((mPosX < 0) || (mPosX + CHARACTER_WIDTH > LEVEL_WIDTH) || checkCollision(mColliders, otherColliders) && !onTopOfEnemy) {
         mPosX -= mVelX;
         shiftColliders();
     }
 
-    //Jump move new
+    // Apply gravity continuously
+    if (!mJumping) {
+        mVelY += GRAVITY;
+    }
+
+    // Check for collision with enemy or ground
+    if (checkCollision(mColliders, otherColliders) || mPosY + CHARACTER_HEIGHT >= GROUND_LEVEL) {
+        if (mVelY > 0) { // Only stop falling if moving down
+            mJumping = false;
+            mVelY = 0;
+        }
+    } else {
+        mPosY += mVelY;
+        shiftColliders();
+    }
+
+    // Jump move
     if (mJumping) {
         mPosY += mVelY;
         mVelY += GRAVITY;
 
-        if (mPosY >= mJumpStartY) {
+        if (checkCollision(mColliders, otherColliders)) {
+            mJumping = false;
+            mVelY = 0;
+        }
+        else if (mPosY >= mJumpStartY) {
             mPosY = mJumpStartY;
             mJumping = false;
             mVelY = 0;
         }
     }
 
-    //Move the character up or down
+    // Move the character up or down
     mPosY += mVelY;
     shiftColliders();
 
-    //If the character went too far up or down
-    if( ( mPosY < 0 ) || ( mPosY + CHARACTER_HEIGHT > GROUND_LEVEL ) || checkCollision( mColliders, otherColliders ))
-    {
-        //Move back
+    // If the character went too far up or down
+    if ((mPosY < 0) || (mPosY  > GROUND_LEVEL) || checkCollision(mColliders, otherColliders)) {
         mPosY -= mVelY;
         shiftColliders();
+    }
+
+    // Check if player is on top of an enemy
+    for (auto& enemyCollider : otherColliders) {
+        if (mPosY + CHARACTER_HEIGHT <= enemyCollider.y && mPosY + CHARACTER_HEIGHT + mVelY > enemyCollider.y &&
+            mPosX + CHARACTER_WIDTH > enemyCollider.x && mPosX < enemyCollider.x + enemyCollider.w) {
+            mPosY = enemyCollider.y - CHARACTER_HEIGHT;
+            mJumping = false;
+            mVelY = 0;
+            onTopOfEnemy = true;
+            break;
+        }
+    }
+
+    // Check if player has moved off the enemy
+    if (onTopOfEnemy) {
+        bool stillOnEnemy = false;
+        for (auto& enemyCollider : otherColliders) {
+            if (mPosX + CHARACTER_WIDTH > enemyCollider.x && mPosX < enemyCollider.x + enemyCollider.w) {
+                stillOnEnemy = true;
+                break;
+            }
+        }
+        if (!stillOnEnemy) {
+            onTopOfEnemy=false;
+            mVelY = GRAVITY; // Start falling down
+        }
+        printf("still on enemy (%d)\n", stillOnEnemy);
     }
 }
 
@@ -196,25 +207,66 @@ void Character::shiftColliders()
     }
 }
 
+Player::Player(SDL_Renderer* render, LTexture* texture, SDL_Rect* clips, int numClips, int x, int y)
+    : Character(render, texture, clips, numClips, x, y), mFlip(SDL_FLIP_NONE) {}
 
-
-void Character::render()
+void Player::handleEvent( SDL_Event& e )
 {
-    //Show the character
-    // gCharacterTexture->renderB( renderer, mPosX, mPosY );
-    gCharacterTexture->render( renderer, mPosX, mPosY, &mClips[mCurrentClipIndex] );
-    // printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
+    //If a key was pressed
+    if( e.type == SDL_KEYDOWN && e.key.repeat == 0 )
+    {
+        //Adjust the velocity
+        mMoving = true;
+        switch( e.key.keysym.sym )
+        {
+            case SDLK_UP:
+                if (!mJumping) {
+                    mVelY = -JUMP_VELOCITY;
+                    mJumping = true;
+                    mJumpStartY = mPosY;
+                }
+            break;
+            case SDLK_LEFT: mVelX -= CHARACTER_VEL; mFlip=SDL_FLIP_HORIZONTAL; break;
+            case SDLK_RIGHT: mVelX += CHARACTER_VEL; mFlip=SDL_FLIP_NONE; break;
+        }
+    }    //If a key was released
+    else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
+    {
+        //Adjust the velocity
+        switch( e.key.keysym.sym )
+        {
 
-}void Character::render(int camX, int camY)
-{
-    //Show the character
-    if (mMoving == false) {
-        gCharacterTexture->render( renderer, mPosX - camX, mPosY - camY, &mClips[2],0.0,nullptr, flip);
-    } else {
-        gCharacterTexture->render( renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex], 0.0, nullptr, flip);
+            case SDLK_LEFT: mVelX += CHARACTER_VEL; mMoving = false;break;
+            case SDLK_RIGHT: mVelX -= CHARACTER_VEL; mMoving = false;break;
+        }
     }
-    // std::cout << gCharacterTexture.getTexturePath();
-    // printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
+}
+
+void Player::render() {
+    if (!mMoving) {
+        gCharacterTexture->render(renderer, mPosX, mPosY, &mClips[2], 0.0, nullptr, mFlip);
+    } else {
+        gCharacterTexture->render(renderer, mPosX, mPosY, &mClips[mCurrentClipIndex], 0.0, nullptr, mFlip);
+    }
+}
+
+void Player::render(int camX, int camY) {
+    if (!mMoving) {
+        gCharacterTexture->render(renderer, mPosX - camX, mPosY - camY, &mClips[2], 0.0, nullptr, mFlip);
+    } else {
+        gCharacterTexture->render(renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex], 0.0, nullptr, mFlip);
+    }
+}
+
+Enemy::Enemy(SDL_Renderer* render, LTexture* texture, SDL_Rect* clips, int numClips, int x, int y)
+    : Character(render, texture, clips, numClips, x, y) {}
+
+void Enemy::render() {
+    gCharacterTexture->render(renderer, mPosX, mPosY, &mClips[mCurrentClipIndex]);
+}
+
+void Enemy::render(int camX, int camY) {
+    gCharacterTexture->render(renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex]+7, 0.0, nullptr, SDL_FLIP_HORIZONTAL);
 }
 
 void Character::setCurrentClip(int frame) {
