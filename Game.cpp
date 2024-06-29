@@ -403,7 +403,7 @@ void run() {
 
                 // Set text to be rendered
                 timeText.str("");
-                timeText << "Seconds since start time " << timer.getTicks() / 1000.f; // custom Timer
+                timeText << "Seconds since START: " << timer.getTicks() / 1000.f; // custom Timer
                 //Render text
                 if (!gTimeTextTexture.loadFromRenderedText(timeText.str(), textColor, gRenderer, gFont)) {
                     printf("Unable to render time texture!\n");

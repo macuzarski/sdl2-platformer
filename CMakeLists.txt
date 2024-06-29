@@ -4,10 +4,10 @@ project(cowabunger)
 set(CMAKE_CXX_STANDARD 17)
 
 
-set(SDL2_DIR "E:/sdl2-project/sdl2-platformer/lib/SDL2-2.30.1")
-set(SDL2_IMAGE_DIR "E:/sdl2-project/sdl2-platformer/lib/SDL2_image-2.8.2")
-set(SDL2_TTF_DIR "E:/sdl2-project/sdl2-platformer/lib/SDL2_ttf-2.22.0")
-set(SDL2_MIXER_DIR "E:/sdl2-project/sdl2-platformer/lib/SDL2_mixer-2.8.0")
+set(SDL2_DIR "/SDL2-2.30.1")
+set(SDL2_IMAGE_DIR "/SDL2_image-2.8.2")
+set(SDL2_TTF_DIR "/SDL2_ttf-2.22.0")
+set(SDL2_MIXER_DIR "/SDL2_mixer-2.8.0")
 
 include_directories(${SDL2_DIR}/include ${SDL2_IMAGE_DIR}/include ${SDL2_TTF_DIR}/include ${SDL2_MIXER_DIR}/include)
 
