@@ -4,6 +4,7 @@
 #include "Character.h"
 #include "defs.h"
 #include "LTexture.h"
+SDL_RendererFlip flip;
 
 bool checkCollision( std::vector<SDL_Rect>& a, std::vector<SDL_Rect>& b )
 {
@@ -43,8 +44,8 @@ bool checkCollision( std::vector<SDL_Rect>& a, std::vector<SDL_Rect>& b )
     return false;
 }
 
-Character::Character(SDL_Renderer* render, LTexture* texture, int x, int y )
-{
+// Character::Character(SDL_Renderer* render, LTexture* texture, int x, int y ) {
+Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, int numClips, int x, int y ) {
     //Initialize the offsets
     mPosX = x;
     mPosY = y;
@@ -57,6 +58,7 @@ Character::Character(SDL_Renderer* render, LTexture* texture, int x, int y )
     mVelY = 0;
     mJumping = false;
     mJumpStartY = 0;
+    mMoving = false;
 
     //Initialize the collision boxes' width and height
     mColliders[ 0 ].w = 6;
@@ -97,6 +99,10 @@ Character::Character(SDL_Renderer* render, LTexture* texture, int x, int y )
 
     renderer = render;
     gCharacterTexture = texture;
+    mClips = clips;
+    mNumClips = numClips;
+    mCurrentClipIndex = 0;
+    mFlip = SDL_FLIP_NONE;
 }
 
 void Character::handleEvent( SDL_Event& e )
@@ -105,6 +111,7 @@ void Character::handleEvent( SDL_Event& e )
     if( e.type == SDL_KEYDOWN && e.key.repeat == 0 )
     {
         //Adjust the velocity
+        mMoving = true;
         switch( e.key.keysym.sym )
         {
             // case SDLK_UP: mVelY -= CHARACTER_VEL; break;
@@ -116,8 +123,8 @@ void Character::handleEvent( SDL_Event& e )
                 }
             break;
             case SDLK_DOWN: mVelY += CHARACTER_VEL; break;
-            case SDLK_LEFT: mVelX -= CHARACTER_VEL; break;
-            case SDLK_RIGHT: mVelX += CHARACTER_VEL; break;
+            case SDLK_LEFT: mVelX -= CHARACTER_VEL; flip=SDL_FLIP_HORIZONTAL; break;
+            case SDLK_RIGHT: mVelX += CHARACTER_VEL; flip=SDL_FLIP_NONE; break;
         }
     }    //If a key was released
     else if( e.type == SDL_KEYUP && e.key.repeat == 0 )
@@ -125,10 +132,9 @@ void Character::handleEvent( SDL_Event& e )
         //Adjust the velocity
         switch( e.key.keysym.sym )
         {
-            case SDLK_UP: mVelY += CHARACTER_VEL; break;
-            case SDLK_DOWN: mVelY -= CHARACTER_VEL; break;
-            case SDLK_LEFT: mVelX += CHARACTER_VEL; break;
-            case SDLK_RIGHT: mVelX -= CHARACTER_VEL; break;
+
+            case SDLK_LEFT: mVelX += CHARACTER_VEL; mMoving = false;break;
+            case SDLK_RIGHT: mVelX -= CHARACTER_VEL; mMoving = false;break;
         }
     }
 }
@@ -195,18 +201,26 @@ void Character::shiftColliders()
 void Character::render()
 {
     //Show the character
-    gCharacterTexture->renderB( renderer, mPosX, mPosY );
-    // std::cout << gCharacterTexture.getTexturePath();
-    printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
+    // gCharacterTexture->renderB( renderer, mPosX, mPosY );
+    gCharacterTexture->render( renderer, mPosX, mPosY, &mClips[mCurrentClipIndex] );
+    // printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
 
 }void Character::render(int camX, int camY)
 {
     //Show the character
-    gCharacterTexture->renderB( renderer, mPosX - camX, mPosY - camY);
+    if (mMoving == false) {
+        gCharacterTexture->render( renderer, mPosX - camX, mPosY - camY, &mClips[2],0.0,nullptr, flip);
+    } else {
+        gCharacterTexture->render( renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex], 0.0, nullptr, flip);
+    }
     // std::cout << gCharacterTexture.getTexturePath();
-    printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
-
+    // printf("Rendering character at position (%d, %d)\n", mPosX, mPosY);
 }
+
+void Character::setCurrentClip(int frame) {
+    mCurrentClipIndex = frame / 4 % mNumClips;
+}
+
 std::vector<SDL_Rect>& Character::getColliders()
 {
     return mColliders;

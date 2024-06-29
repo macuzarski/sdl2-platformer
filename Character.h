@@ -23,7 +23,8 @@ public:
     static const int GRAVITY = 1;
 
     //Initializes the variables
-    Character(SDL_Renderer* render, LTexture* texture, int x, int y );
+    // Character(SDL_Renderer* render, LTexture* texture, int x, int y );
+    Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, int numClips, int x, int y );
 
     //Takes key presses and adjusts the character's velocity
     void handleEvent( SDL_Event& e );
@@ -34,6 +35,7 @@ public:
     //Shows the character on the screen
     void render();
     void render(int camX, int camY);
+    void setCurrentClip(int frame);
 
     //Gets the collision boxes
     std::vector<SDL_Rect>& getColliders();
@@ -51,9 +53,14 @@ private:
 
     bool mJumping;
     int mJumpStartY;
+    bool mMoving;
     SDL_Renderer* renderer;
     LTexture* gCharacterTexture;
-    //character's collision box
+    //animation supp
+    SDL_Rect* mClips;
+    int mNumClips;
+    int mCurrentClipIndex;
+    SDL_RendererFlip mFlip;
 
     //character's collision boxes
     std::vector<SDL_Rect> mColliders;

@@ -22,6 +22,7 @@ add_executable(${PROJECT_NAME} main.cpp
         LTimer.cpp
         LButton.h
         LButton.cpp
+        Game.cpp
 )
 
 target_link_libraries(${PROJECT_NAME}
