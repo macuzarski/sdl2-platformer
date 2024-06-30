@@ -9,7 +9,6 @@ LTexture::LTexture()
     mTexture = NULL;
     mWidth = 0;
     mHeight = 0;
-    texturePath = "";
 }
 LTexture::~LTexture()
 {
@@ -21,7 +20,6 @@ bool LTexture::loadFromFile( std::string path, SDL_Renderer* renderer )
 {
     //Get rid of preexisting texture
     free();
-    texturePath = path;
 
     //The final texture
     SDL_Texture* newTexture = NULL;
@@ -104,31 +102,14 @@ void LTexture::free()
         mHeight = 0;
     }
 }
-void LTexture::setColor( Uint8 red, Uint8 green, Uint8 blue )
-{
-    //Modulate texture
-    SDL_SetTextureColorMod( mTexture, red, green, blue );
-}
-void LTexture::setBlendMode( SDL_BlendMode blending )
-{
-    //Set blending function
-    SDL_SetTextureBlendMode( mTexture, blending );
-}
 
-void LTexture::setAlpha( Uint8 alpha )
-{
-    //Modulate texture alpha
-    SDL_SetTextureAlphaMod( mTexture, alpha );
-}
-
-
-void LTexture::renderB( SDL_Renderer* render, int x, int y )
+void LTexture::render( SDL_Renderer* render, int x, int y )
 {
     //Set rendering space and render to screen
     SDL_Rect renderQuad = { x, y, mWidth, mHeight };
     SDL_RenderCopy( render, mTexture, NULL, &renderQuad );
 }
-void LTexture::render( SDL_Renderer* render, int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip )
+void LTexture::renderEx( SDL_Renderer* render, int x, int y, SDL_Rect* clip, double angle, SDL_Point* center, SDL_RendererFlip flip )
 {
     //Set rendering space and render to screen
     SDL_Rect renderQuad = { x, y, mWidth, mHeight };
@@ -155,8 +136,4 @@ int LTexture::getWidth()
 int LTexture::getHeight()
 {
     return mHeight;
-}
-
-std::string LTexture::getTexturePath() {
-    return texturePath;
 }

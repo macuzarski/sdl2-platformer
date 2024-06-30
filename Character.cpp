@@ -38,12 +38,10 @@ bool checkCollision( std::vector<SDL_Rect>& a, std::vector<SDL_Rect>& b )
             }
         }
     }
-
     //If neither set of collision boxes touched
     return false;
 }
 
-// Character::Character(SDL_Renderer* render, LTexture* texture, int x, int y ) {
 Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, int numClips, int x, int y ) {
     //Initialize the offsets
     mPosX = x;
@@ -84,6 +82,7 @@ Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, in
     mColliders[ 7 ].w = 80;
     mColliders[ 7 ].h = 5;
 
+    //TODO:figure out better collision box the toro
     // mColliders[ 8 ].w = 14;
     // mColliders[ 8 ].h = 1;
     //
@@ -104,7 +103,7 @@ Character::Character(SDL_Renderer* render, LTexture* texture,SDL_Rect* clips, in
 
 }
 
-void Character::move(std::vector<SDL_Rect>& otherColliders)
+bool Character::move(std::vector<SDL_Rect>& otherColliders)
 {
     printf("on enemy (%d)\n", onTopOfEnemy);
     // Move the character left or right
@@ -112,9 +111,11 @@ void Character::move(std::vector<SDL_Rect>& otherColliders)
     shiftColliders();
 
     // If the character went too far to the left or right
-    if ((mPosX < 0) || (mPosX + CHARACTER_WIDTH > LEVEL_WIDTH) || checkCollision(mColliders, otherColliders) && !onTopOfEnemy) {
+    if ((mPosX < 0) || checkCollision(mColliders, otherColliders) && !onTopOfEnemy) {
         mPosX -= mVelX;
         shiftColliders();
+    } else if (mPosX + CHARACTER_WIDTH > LEVEL_WIDTH) {
+        return true;
     }
 
     // Apply gravity continuously
@@ -186,6 +187,7 @@ void Character::move(std::vector<SDL_Rect>& otherColliders)
         }
         printf("still on enemy (%d)\n", stillOnEnemy);
     }
+    return false;
 }
 
 void Character::shiftColliders()
@@ -193,7 +195,7 @@ void Character::shiftColliders()
     //The row offset
     int r = 0;
 
-    //Go through the dot's collision boxes
+    //Go through the player's collision boxes
     for( int set = 0; set < mColliders.size(); ++set )
     {
         //Center the collision box
@@ -244,17 +246,17 @@ void Player::handleEvent( SDL_Event& e )
 
 void Player::render() {
     if (!mMoving) {
-        gCharacterTexture->render(renderer, mPosX, mPosY, &mClips[2], 0.0, nullptr, mFlip);
+        gCharacterTexture->renderEx(renderer, mPosX, mPosY, &mClips[2], 0.0, nullptr, mFlip);
     } else {
-        gCharacterTexture->render(renderer, mPosX, mPosY, &mClips[mCurrentClipIndex], 0.0, nullptr, mFlip);
+        gCharacterTexture->renderEx(renderer, mPosX, mPosY, &mClips[mCurrentClipIndex], 0.0, nullptr, mFlip);
     }
 }
 
 void Player::render(int camX, int camY) {
     if (!mMoving) {
-        gCharacterTexture->render(renderer, mPosX - camX, mPosY - camY, &mClips[2], 0.0, nullptr, mFlip);
+        gCharacterTexture->renderEx(renderer, mPosX - camX, mPosY - camY, &mClips[2], 0.0, nullptr, mFlip);
     } else {
-        gCharacterTexture->render(renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex], 0.0, nullptr, mFlip);
+        gCharacterTexture->renderEx(renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex], 0.0, nullptr, mFlip);
     }
 }
 
@@ -262,15 +264,15 @@ Enemy::Enemy(SDL_Renderer* render, LTexture* texture, SDL_Rect* clips, int numCl
     : Character(render, texture, clips, numClips, x, y) {}
 
 void Enemy::render() {
-    gCharacterTexture->render(renderer, mPosX, mPosY, &mClips[mCurrentClipIndex]);
+    gCharacterTexture->renderEx(renderer, mPosX, mPosY, &mClips[mCurrentClipIndex]);
 }
 
 void Enemy::render(int camX, int camY) {
-    gCharacterTexture->render(renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex]+7, 0.0, nullptr, SDL_FLIP_HORIZONTAL);
+    gCharacterTexture->renderEx(renderer, mPosX - camX, mPosY - camY, &mClips[mCurrentClipIndex]+7, 0.0, nullptr, SDL_FLIP_HORIZONTAL);
 }
 
 void Character::setCurrentClip(int frame) {
-    mCurrentClipIndex = frame / 4 % mNumClips;
+    mCurrentClipIndex = frame / 7 % mNumClips;
 }
 
 std::vector<SDL_Rect>& Character::getColliders()

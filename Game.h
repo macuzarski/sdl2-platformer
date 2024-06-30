@@ -4,6 +4,6 @@
 bool init();
 bool loadMedia();
 void close();
-void run();
+bool run();
 
 #endif // GAME_H

@@ -16,7 +16,7 @@ public:
     Character(SDL_Renderer* render, LTexture* texture, SDL_Rect* clips, int numClips, int x, int y);
 
     // void handleEvent(SDL_Event& e);
-    void move(std::vector<SDL_Rect>& otherColliders);
+    bool move(std::vector<SDL_Rect>& otherColliders);
     virtual void render() = 0;
     virtual void render(int camX, int camY) = 0;
 

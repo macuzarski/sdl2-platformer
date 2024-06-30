@@ -23,7 +23,6 @@ or via CLion IDE</br>
 Known Issues
 ---
 >- Depending on build approach, PATH variable  usage etc. it might be necessary to copy .dll files from libraries into build directory
->- For some reason paths to library directories act somewhat unclear on my machine, without a particular pattern. It might be necessary to change paths to lib directories in  CMakeLists.txt (happend on Windows10)
 >:</br>set(SDL2_DIR "/SDL2-2.30.1")</br>
    set(SDL2_IMAGE_DIR "/SDL2_image-2.8.2")</br>
    set(SDL2_TTF_DIR "/SDL2_ttf-2.22.0")</br>
